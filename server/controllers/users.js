@@ -19,7 +19,11 @@ exports.getCurrentUser=function(req,res,next){
   if(!user){
     return res.sendStatus(422);    
   }
-  return res.json(user);
+  // FOR SESSION AUTH ONLY
+  // return res.json(user);
+
+  return res.json(user.toAuthJSON());
+
 }
 
 
@@ -89,19 +93,24 @@ exports.login = function(req, res, next) {
     }
 
     if(passportUser){
-      
-      //Esta funcion está disponible gracias a haber declarado el middleware passport
-      req.login(passportUser,function(err){
-        if(err){next(err);}
-        return res.json(passportUser);
-      });
-    }else{
-      return res.status(422).send({
-        errors:{
-          'authentication':'Ooooops, something went wrong!'
-        }
-      })
+      return res.json(passportUser.toAuthJSON())
     }
+
+    //ONLY FOR SESSION AUTH
+    // if(passportUser){
+      
+    //   //Esta funcion está disponible gracias a haber declarado el middleware passport
+    //   req.login(passportUser,function(err){
+    //     if(err){next(err);}
+    //     return res.json(passportUser);
+    //   });
+    // }else{
+    //   return res.status(422).send({
+    //     errors:{
+    //       'authentication':'Ooooops, something went wrong!'
+    //     }
+    //   })
+    // }
 
   })(req,res,next)
 }
