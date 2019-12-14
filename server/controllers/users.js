@@ -1,5 +1,5 @@
 const User = require('../models/users');
-const passport=require('passport');
+const passport = require('passport');
 
 exports.getUsers = function(req, res) {
   User.find({})
@@ -13,19 +13,17 @@ exports.getUsers = function(req, res) {
   });
 }
 
-exports.getCurrentUser=function(req,res,next){
-  const user=req.user;
+exports.getCurrentUser = function (req, res, next) {
+  const user = req.user;
 
-  if(!user){
-    return res.sendStatus(422);    
+  if(!user) {
+    return res.sendStatus(422);
   }
-  // FOR SESSION AUTH ONLY
+
+  // For Session Auth!
   // return res.json(user);
-
   return res.json(user.toAuthJSON());
-
-}
-
+};
 
 exports.register = function(req, res) {
   const registerData = req.body
@@ -33,7 +31,7 @@ exports.register = function(req, res) {
   if (!registerData.email) {
     return res.status(422).json({
       errors: {
-        email: 'is required',
+        email: 'is required', 
         message: 'Email is required'
       }
     })
@@ -42,7 +40,7 @@ exports.register = function(req, res) {
   if (!registerData.password) {
     return res.status(422).json({
       errors: {
-        password: 'is required',
+        password: 'is required', 
         message: 'Password is required'
       }
     })
@@ -51,8 +49,8 @@ exports.register = function(req, res) {
   if (registerData.password !== registerData.passwordConfirmation) {
     return res.status(422).json({
       errors: {
-        password: 'is not the same as confirmation password',
-        message: 'Password is not the same as confirmation password'
+        password: 'is not the same as confirmation password', 
+        message:'Password is not the same as the confirmation password'
       }
     })
   }
@@ -60,18 +58,22 @@ exports.register = function(req, res) {
   const user = new User(registerData);
 
   return user.save((errors, savedUser) => {
-    if (errors) { return res.status(422).json({errors}) };
-   
-    })
+    if (errors) {
+      return res.status(422).json({errors})
+    }
+
+    return res.json(savedUser)
+  })
 }
 
-exports.login = function(req, res, next) {
-  const {email, password} = req.body
+exports.login = function (req, res, next) {
+  const { email, password } = req.body
 
   if (!email) {
     return res.status(422).json({
       errors: {
-        email: 'is required'
+        email: 'is required',
+        message: 'Email is required'
       }
     })
   }
@@ -79,44 +81,38 @@ exports.login = function(req, res, next) {
   if (!password) {
     return res.status(422).json({
       errors: {
-        password: 'is required'
+        password: 'is required',
+        message: 'Password is required'
       }
     })
   }
 
-  //cuando se crea passport.authenticate, devuelve una funcion. Se podría instanciar el objeto y después llamar a la funcion, 
-  // pero puede hacerse directamente en una linea si llamas a la funcion entre parentesis acto seguido como vemos abajo
-
-  return passport.authenticate('local', (err,passportUser)=>{
-    if(err){
+  return passport.authenticate('local', (err, passportUser) => {
+    if (err) {
       return next(err)
     }
 
-    if(passportUser){
+    if (passportUser) {
+      // Only For Session Auth!!!
+      // req.login(passportUser, function (err) {
+      //   if (err) { next(err); }
+
+      //   return res.json(passportUser)
+      // });
+
       return res.json(passportUser.toAuthJSON())
+
+    } else {
+      return res.status(422).send({errors: {
+        'message': 'Invalid password or email'
+      }})
     }
 
-    //ONLY FOR SESSION AUTH
-    // if(passportUser){
-      
-    //   //Esta funcion está disponible gracias a haber declarado el middleware passport
-    //   req.login(passportUser,function(err){
-    //     if(err){next(err);}
-    //     return res.json(passportUser);
-    //   });
-    // }else{
-    //   return res.status(422).send({
-    //     errors:{
-    //       'authentication':'Ooooops, something went wrong!'
-    //     }
-    //   })
-    // }
-
-  })(req,res,next)
+  })(req, res, next)
 }
 
-exports.logout = function(req,res) {
-  console.log('logout')
+exports.logout = function (req, res) {
   req.logout()
-  return res.json({status:'Sesiondestroyed!'})
+  return res.json({status: 'Session destroyed!'})
 }
+

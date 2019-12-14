@@ -1,0 +1,9 @@
+In case you will copy this server folder don't forget to
+
+1. Override your older server with this one
+2. write your data into config/dev.js
+3. then run your node index.js and see if everything is working fine
+4. you can move to Section 10 - Meetuper JWT Authentication
+
+Cheers (:
+Filip

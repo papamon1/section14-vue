@@ -5,8 +5,8 @@
       <section class="section">
       <div class="m-b-lg">
         <h1 class="title is-inline">Featured Meetups in "Location"</h1>
-        <AppDropdown />
-        <button class="button is-primary is-pulled-right m-r-sm">Create Meetups</button>
+        <AppDropdown />        
+        <router-link v-if="user" :to="{name: 'PageMeetupCreate'}" class="button is-primary is-pulled-right m-r-sm">Create Meetups</router-link>
         <router-link :to="{name: 'PageMeetupFind'}" class="button is-primary is-pulled-right m-r-sm">All</router-link>
         <h1></h1>
       </div>
@@ -153,6 +153,11 @@
     },    
     mixins:[pageLoader],
     computed:{
+
+
+      ...mapGetters({
+        'user':'auth/authUser'
+      }),
 
       //Aqui hacemos lo mismo. Vemos que lo que devolveríamos sería el estado de nuestro store
       // En vez de invocarlo desde el store, lo que hacemos es mapearlo directamente para que se le pueda invocar desde nuestro contexto
