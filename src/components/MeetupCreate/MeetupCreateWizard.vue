@@ -5,17 +5,11 @@
     </div>
     <!-- Form Steps -->
     <keep-alive>
-        <MeetupLocation v-if="currentStep === 1"
-                    @stepUpdated="mergeStepData" />
-        <MeetupDetail v-if="currentStep === 2"
-                      @stepUpdated="mergeStepData" />
-        <MeetupDescription v-if="currentStep === 3"
-                          @stepUpdated="mergeStepData" />
-        <MeetupConfirmation v-if="currentStep === 4" 
-                  :meetupToCreate="form"
-                  />
+      <component :is="currentComponent"
+                 @stepUpdated="mergeStepData"
+                 ref="currentComponent"
+                 :meetupToCreate="form" />
     </keep-alive>
-    
 
     <progress class="progress"
               :value="currentProgress"
@@ -29,10 +23,8 @@
               :disabled="!canProceed"
               class="button is-primary">Next</button>
       <button v-else
-              class="button is-primary">Confirm</button>
-    </div>
-    <!-- Just To See Data in the Form -->
-    <pre><code>{{form}}</code></pre>
+              class="button is-primary" @click="emitMeetupConfirmed">Confirm</button>
+    </div>    
   </div>
 </template>
 
@@ -51,8 +43,8 @@
     data () {
       return {
         currentStep: 1,
-        allStepsCount: 4,
         canProceed: false,
+        formSteps: ['MeetupLocation', 'MeetupDetail', 'MeetupDescription', 'MeetupConfirmation'],
         form: {
           location: null,
           title: null,
@@ -67,25 +59,35 @@
       }
     },
     computed: {
+      allStepsCount () {
+        return this.formSteps.length
+      },
       currentProgress () {
         return (100 / this.allStepsCount) * this.currentStep
+      },
+      currentComponent () {
+        return this.formSteps[this.currentStep - 1]
       }
     },
     methods: {
       mergeStepData (step) {
         this.form = {...this.form, ...step.data}
-        this.canProceed=step.isValid
+        this.canProceed = step.isValid
       },
       moveToNextStep () {
         this.currentStep++
-        // Esta funcion se ejecutará en la siguiente actualizacion del dom. Por lo tanto cuando se recargue la pantalla
-        //con el nuevo componente, saltará el nexttick y ya hacemos la comprobación
-        this.$nextTick(()=>{
-          this.canProceed=!this.$refs['currentComponent'].$v.$isValid
-        })        
+        // https://vuejs.org/v2/api/#Vue-nextTick
+        // Defer the callback to be executed after the next DOM update cycle.
+        this.$nextTick(() => {
+          this.canProceed = !this.$refs['currentComponent'].$v.$invalid
+        })
       },
       moveToPreviousStep () {
         this.currentStep--
+        this.canProceed = true
+      },
+      emitMeetupConfirmed(){
+        this.$emit('meetupConfirmed', this.form)
       }
     }
   }

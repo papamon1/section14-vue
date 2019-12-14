@@ -1,4 +1,5 @@
 import axios from 'axios'
+import axiosInstance from '@/services/axios'
 
 export default{
     namespaced: true,
@@ -17,6 +18,14 @@ export default{
                 context.commit('setItems',{resource:'meetups',items:meetups}, {root:true});
                 return context.state.items
             })
+        },
+        createMeetup({rootState}, meetupToCreate){
+            //completamos lo que falta antes de mandarlo. La ubicación y el usuario
+            meetupToCreate.meetupCreator=rootState.auth.user
+            //Esta expresion regular lo que hará será eliminar comas y nespacios, y poner todo en minusculas
+            meetupToCreate.processedLocation=meetupToCreate.location.toLowerCase().replace(/[\s,]+/g,'').trim()
+            return axiosInstance.post('/api/v1/meetups', meetupToCreate)
+            .then(res=>res.data)
         },
         fetchMeetupById(context,meetupId){
             // MEJORA
