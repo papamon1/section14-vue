@@ -1,48 +1,69 @@
+import Vue from 'vue'
 import axios from 'axios'
 import axiosInstance from '@/services/axios'
 
-export default{
-    namespaced: true,
+export default {
+  namespaced: true,
 
-    state:{
-        items:[],
-        item:{}
-    },    
-    actions:{
-        fetchMeetups(context){
-            context.commit('setItems',{resource:'meetups',items:[]}, {root:true});
-            axios.get('/api/v1/meetups')
-            .then(res=>{
-                const meetups = res.data;
-                // context.commit('setMeetups',meetups);
-                context.commit('setItems',{resource:'meetups',items:meetups}, {root:true});
-                return context.state.items
-            })
-        },
-        createMeetup({rootState}, meetupToCreate){
-            //completamos lo que falta antes de mandarlo. La ubicación y el usuario
-            meetupToCreate.meetupCreator=rootState.auth.user
-            //Esta expresion regular lo que hará será eliminar comas y nespacios, y poner todo en minusculas
-            meetupToCreate.processedLocation=meetupToCreate.location.toLowerCase().replace(/[\s,]+/g,'').trim()
-            return axiosInstance.post('/api/v1/meetups', meetupToCreate)
-            .then(res=>res.data)
-        },
-        fetchMeetupById(context,meetupId){
-            // MEJORA
-            //Cuando cargamos una página de detalle después de haber cargado antes otra en algun momento,
-            //por unos segundos se muestran los datos de la anterior meetup, hasta que se fecthean los nuevos y se cargan
-            //Por eso, cuando se hace la llamada, vamos a eliminar o cargar datos vacíos hasta que se complete la carga de los nuevos
+  state: {
+    items: [],
+    item: {}
+  },
+  actions: {
+    fetchMeetups ({state, commit}) {
+      commit('setItems', {resource: 'meetups', items: []}, {root: true})
+      return axios.get('/api/v1/meetups')
+        .then(res => {
+          const meetups = res.data
+          commit('setItems', {resource: 'meetups', items: meetups}, {root: true})
+          return state.items
+        })
+    },
+    fetchMeetupById ({state, commit}, meetupId) {
+      commit('setItem', {resource: 'meetups', item: {}}, {root: true})
+      return axios.get(`/api/v1/meetups/${meetupId}`)
+        .then(res => {
+          const meetup = res.data
+          commit('setItem', {resource: 'meetups', item: meetup}, {root: true})
+          return state.item
+        })
+    },
+    createMeetup ({rootState}, meetupToCreate) {
+      meetupToCreate.meetupCreator = rootState.auth.user
+      meetupToCreate.processedLocation = meetupToCreate.location.toLowerCase().replace(/[\s,]+/g,'').trim()
 
-            context.commit('setItem',{resource:'meetups',item:{}}, {root:true});
+      return axiosInstance.post('/api/v1/meetups', meetupToCreate)
+        .then(res => res.data)
+    },
+    joinMeetup ({state, rootState, commit, dispatch}, meetupId) {
+      const user = rootState.auth.user
 
-            //En este caso tenemos que ver lo que ocurre en la funcion definida en el servidor. Pasamos como parametro con el signo ?
-            return axios.get(`/api/v1/meetups/${meetupId}`)
-            .then(res=>{                
-                const meetup=res.data
-                // context.commit('setMeetup',meetup);
-                context.commit('setItem',{resource:'meetups',item:meetup}, {root:true});
-                return context.state.item
-            })
-        }
+      return axiosInstance.post(`/api/v1/meetups/${meetupId}/join`)
+        .then(() => {
+          dispatch('auth/addMeetupToAuthUser', meetupId, {root: true})
+
+          const joinedPeople = state.item.joinedPeople
+          commit('addUsersToMeetup', [...joinedPeople, user])
+          return true
+        })
+    },
+    leaveMeetup ({state, rootState, commit, dispatch}, meetupId) {
+        const user = rootState.auth.user
+  
+        return axiosInstance.post(`/api/v1/meetups/${meetupId}/leave`)
+          .then(() => {
+            dispatch('auth/removeMeetupFromAuthUser', meetupId, {root: true})
+  
+            const joinedPeople = state.item.joinedPeople
+            const index= joinedPeople.findIndex(jUser=>jUser._id===user._id)
+            joinedPeople.splice(index,1);
+            commit('addUsersToMeetup', joinedPeople)
+          })
+      }
+  },
+  mutations: {
+    addUsersToMeetup (state, joinedPeople) {
+      Vue.set(state.item, 'joinedPeople', joinedPeople)
     }
+  }
 }

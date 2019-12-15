@@ -1,7 +1,8 @@
+import Vue from 'vue'
 import axios from 'axios'
 import jwt from 'jsonwebtoken'
 import axiosInstance from '@/services/axios'
-import {rejectError} from '@/helpers'
+import { rejectError } from '@/helpers'
 
 function checkTokenValidity (token) {
   if (token) {
@@ -12,8 +13,6 @@ function checkTokenValidity (token) {
 
   return false
 }
-
-
 
 export default {
   namespaced: true,
@@ -27,6 +26,15 @@ export default {
     },
     isAuthenticated (state) {
       return !!state.user
+    },
+    isMeetupOwner: (state) => (meetupCreatorId) => {
+      if (!state.user) return false
+      return state.user._id === meetupCreatorId
+    },
+    isMember: (state) => (meetupId) => {
+      return state.user &&
+             state.user['joinedMeetups'] &&
+             state.user['joinedMeetups'].includes(meetupId)
     }
   },
   actions: {
@@ -37,11 +45,11 @@ export default {
           localStorage.setItem('meetuper-jwt', user.token)
           commit('setAuthUser', user)
         })
-        .catch(err=> rejectError(err))
+        .catch(err => rejectError(err))
     },
     registerUser (context, userData) {
       return axios.post('/api/v1/users/register', userData)
-      .catch(err=> rejectError(err))
+        .catch(err => rejectError(err))
     },
     logout ({commit}) {
       // For Session Authnetication !
@@ -54,7 +62,7 @@ export default {
       //     return err
       //   })
 
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         localStorage.removeItem('meetuper-jwt')
         commit('setAuthUser', null)
         resolve(true)
@@ -86,6 +94,16 @@ export default {
           commit('setAuthState', true)
           return err
         })
+    },
+    addMeetupToAuthUser ({commit, state}, meetupId) {
+      const userMeetups = [...state.user['joinedMeetups'], meetupId]
+      commit('setMeetupsToAuthUser', userMeetups)
+    },
+    removeMeetupFromAuthUser({commit, state}, meetupId){
+      const userMeetupsIds =[...state.user['joinedMeetups']]
+      const index = userMeetupsIds.findIndex(userMeetupId=> userMeetupId===meetupId)  
+      userMeetupsIds.splice(index,1)
+      commit('setMeetupsToAuthUser', userMeetupsIds)
     }
   },
   mutations: {
@@ -94,6 +112,9 @@ export default {
     },
     setAuthState (state, authState) {
       return state.isAuthResolved = authState
+    },
+    setMeetupsToAuthUser (state, meetups) {
+      return Vue.set(state.user, 'joinedMeetups', meetups)
     }
   }
 }

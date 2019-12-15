@@ -31,7 +31,9 @@
         </div>
         <div class="is-pulled-right">
           <!-- We will handle this later (: -->
-          <button class="button is-danger">Leave Group</button>
+          <button v-if="isMember" 
+              @click="leaveMeetup"
+              class="button is-danger">Leave Meetup</button>
         </div>
       </div>
     </section>
@@ -92,10 +94,11 @@
               <!-- TODO: meetup description -->
               <p>{{meetup.description}}</p>
               <!-- Join Meetup, We will handle it later (: -->
-              <button class="button is-primary">Join In</button>
+              <button @click="joinMeetup" v-if="canJoin" class="button is-primary">Join In</button>
               <!-- Not logged In Case, handle it later (: -->
-              <!-- <button :disabled="true"
-                      class="button is-warning">You need authenticate in order to join</button> -->
+              <button v-if="!isAuthenticated"
+                      :disabled="true"
+                      class="button is-warning">You need authenticate in order to join</button>
             </div>
             <!-- Thread List START -->
             <div class="content is-medium">
@@ -162,11 +165,31 @@
         // ...mapGetters(['testingGetter']),            
           meetupCreator(){
             return this.meetup.meetupCreator || {}
+          },
+          isAuthenticated(){
+            return this.$store.getters['auth/isAuthenticated']
+          },
+          isMeetupOwner(){
+            return this.$store.getters['auth/isMeetupOwner'](this.meetupCreator._id)
+          },
+          isMember(){
+            return this.$store.getters['auth/isMember'](this.meetup._id)
+          },
+          canJoin(){
+            return !this.isMeetupOwner &&
+                    this.isAuthenticated &&
+                    !this.isMember
           }
         },
         methods:{
           ...mapActions('meetups', ['fetchMeetupById']),
-          ...mapActions('threads', ['fetchThreads'])
+          ...mapActions('threads', ['fetchThreads']),
+          joinMeetup () {            
+            this.$store.dispatch('meetups/joinMeetup', this.meetup._id)
+          },
+          leaveMeetup(){
+            this.$store.dispatch('meetups/leaveMeetup', this.meetup._id)
+          }
         }
     }
 </script>
