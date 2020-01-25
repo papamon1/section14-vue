@@ -99,6 +99,11 @@
               <button v-if="!isAuthenticated"
                       :disabled="true"
                       class="button is-warning">You need authenticate in order to join</button>
+              <ThreadCreateModal v-if="isMember || isMeetupOwner"
+                                  @threadSubmited="createThread"
+                                  :btnTitle="`Wellcome ${authUser.username}, Start a new thread `"
+                                  :title="'Create thread'"
+              />
             </div>
             <!-- Thread List START -->
             <div class="content is-medium">
@@ -150,7 +155,11 @@
 
 <script>
     import {mapActions, mapState, mapGetters} from 'vuex'
+    import ThreadCreateModal from '@/components/ThreadCreateModal'
     export default {        
+        components:{
+          ThreadCreateModal
+        },
         created(){
             const meetupId = this.$route.params.id
             this.fetchMeetupById(meetupId)
@@ -160,7 +169,8 @@
           ...mapState({
             //reciben una funcion, lo haremos con sintaxis de arrow, y en concreto de arrow que solo tiene un parametro
             meetup: state => state.meetups.item,
-            threads: state => state.threads.items
+            threads: state => state.threads.items, 
+            authUser: state=> state.auth.user
           }),
         // ...mapGetters(['testingGetter']),            
           meetupCreator(){
@@ -183,12 +193,17 @@
         },
         methods:{
           ...mapActions('meetups', ['fetchMeetupById']),
-          ...mapActions('threads', ['fetchThreads']),
+          ...mapActions('threads', ['fetchThreads', 'postThread']),
           joinMeetup () {            
             this.$store.dispatch('meetups/joinMeetup', this.meetup._id)
           },
           leaveMeetup(){
             this.$store.dispatch('meetups/leaveMeetup', this.meetup._id)
+          },
+          createThread({title, done}){
+            //del evento nos viene un objeto con un string y una funcion            
+            this.postThread({title, meetupId: this.meetup._id})
+            .then(() => done())
           }
         }
     }
